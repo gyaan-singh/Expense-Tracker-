@@ -1,31 +1,161 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Expense Tracker</title>
-    <link rel="stylesheet" href="/static/style.css">
+  <title>Expense Tracker</title>
+  <style>
+    body { font-family: Arial; background:#f4f4f4; text-align:center; }
+    .box { background:white; padding:20px; width:300px; margin:50px auto; border-radius:10px; }
+    input { width:90%; padding:10px; margin:5px; }
+    button { padding:10px; width:95%; margin-top:10px; cursor:pointer; }
+    .hidden { display:none; }
+  </style>
 </head>
+
 <body>
 
-<h1>Expense Tracker</h1>
+<!-- SIGNUP -->
+<div class="box" id="signupBox">
+  <h2>Signup</h2>
+  <input id="su_user" placeholder="Username">
+  <input id="su_pass" type="password" placeholder="Password">
+  <button onclick="signup()">Signup</button>
+  <p onclick="showLogin()" style="cursor:pointer;color:blue;">Already have account? Login</p>
+</div>
 
-<h2>Balance: ₹{{ balance }}</h2>
+<!-- LOGIN -->
+<div class="box hidden" id="loginBox">
+  <h2>Login</h2>
+  <input id="li_user" placeholder="Username">
+  <input id="li_pass" type="password" placeholder="Password">
+  <button onclick="login()">Login</button>
+  <p onclick="showSignup()" style="cursor:pointer;color:blue;">Create account</p>
+</div>
 
-<form action="/add" method="POST">
-    <input type="text" name="description" placeholder="Description" required>
-    <input type="number" name="amount" placeholder="Amount (+ income, - expense)" required>
-    <button type="submit">Add</button>
-</form>
+<!-- DASHBOARD -->
+<div class="box hidden" id="dashBox">
+  <h2>Expense Tracker</h2>
 
-<h3>Transactions</h3>
+  <input id="title" placeholder="Expense title">
+  <input id="amount" type="number" placeholder="Amount">
+  <button onclick="addExpense()">Add</button>
 
-<ul>
-    {% for t in transactions %}
-    <li>
-        {{ t[1] }} - ₹{{ t[2] }}
-        <a href="/delete/{{ t[0] }}">Delete</a>
-    </li>
-    {% endfor %}
-</ul>
+  <h3>Total: ₹<span id="total">0</span></h3>
+
+  <ul id="list"></ul>
+
+  <button onclick="logout()">Logout</button>
+</div>
+
+<script>
+let currentUser = null;
+
+// ---------- SIGNUP ----------
+function signup() {
+  let u = document.getElementById("su_user").value;
+  let p = document.getElementById("su_pass").value;
+
+  if (!u || !p) return alert("Fill all fields");
+
+  let users = JSON.parse(localStorage.getItem("users") || "[]");
+
+  if (users.find(x => x.username === u)) {
+    return alert("User already exists");
+  }
+
+  users.push({username:u, password:p});
+  localStorage.setItem("users", JSON.stringify(users));
+
+  alert("Signup successful!");
+  showLogin();
+}
+
+// ---------- LOGIN ----------
+function login() {
+  let u = document.getElementById("li_user").value;
+  let p = document.getElementById("li_pass").value;
+
+  let users = JSON.parse(localStorage.getItem("users") || "[]");
+
+  let user = users.find(x => x.username === u && x.password === p);
+
+  if (!user) return alert("Invalid login");
+
+  currentUser = u;
+  localStorage.setItem("currentUser", u);
+
+  showDashboard();
+}
+
+// ---------- ADD EXPENSE ----------
+function addExpense() {
+  let title = document.getElementById("title").value;
+  let amount = Number(document.getElementById("amount").value);
+
+  if (!title || !amount) return alert("Fill fields");
+
+  let key = "expenses_" + currentUser;
+  let data = JSON.parse(localStorage.getItem(key) || "[]");
+
+  data.push({title, amount});
+  localStorage.setItem(key, JSON.stringify(data));
+
+  loadExpenses();
+}
+
+// ---------- LOAD ----------
+function loadExpenses() {
+  let key = "expenses_" + currentUser;
+  let data = JSON.parse(localStorage.getItem(key) || "[]");
+
+  let list = document.getElementById("list");
+  list.innerHTML = "";
+
+  let total = 0;
+
+  data.forEach(e => {
+    total += e.amount;
+    let li = document.createElement("li");
+    li.innerText = e.title + " - ₹" + e.amount;
+    list.appendChild(li);
+  });
+
+  document.getElementById("total").innerText = total;
+}
+
+// ---------- UI SWITCH ----------
+function showSignup() {
+  document.getElementById("signupBox").classList.remove("hidden");
+  document.getElementById("loginBox").classList.add("hidden");
+}
+
+function showLogin() {
+  document.getElementById("signupBox").classList.add("hidden");
+  document.getElementById("loginBox").classList.remove("hidden");
+}
+
+function showDashboard() {
+  document.getElementById("signupBox").classList.add("hidden");
+  document.getElementById("loginBox").classList.add("hidden");
+  document.getElementById("dashBox").classList.remove("hidden");
+
+  loadExpenses();
+}
+
+// ---------- LOGOUT ----------
+function logout() {
+  localStorage.removeItem("currentUser");
+  location.reload();
+}
+
+// Auto login if already logged in
+window.onload = function() {
+  let u = localStorage.getItem("currentUser");
+  if (u) {
+    currentUser = u;
+    showDashboard();
+  }
+}
+</script>
 
 </body>
-</html>
+    </html>
